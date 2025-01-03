@@ -65,7 +65,13 @@ module.exports = {
               return !minimatch(path, ignorePattern, { matchBase: true });
             });
         }
-        return RSVP.map(filesToCompress, this._compressFile.bind(this, distDir, keep, compressionQuality));
+        // Process files sequentially instead of all at once
+        return filesToCompress.reduce((promise, file) => {
+          return promise.then((result) => {
+            return this._compressFile(distDir, keep, compressionQuality, file)
+              .then(compressed => [...result, compressed]);
+          });
+        }, Promise.resolve([]));
       },
       _compressFile: function(distDir, keep, compressionQuality, filePath) {
         var self = this;
